@@ -26,7 +26,7 @@ struct Cat : Animal {
   virtual void speak() { printf("Meow! I'm %d Year Old!\n", age); }
 };
 
-int main(int argc, const char **argv) {
+int main() {
   std::vector<mstl::unique_ptr<Animal>> zoo;
   int age = 3;
   zoo.push_back(mstl::make_unique<Cat>(age));

@@ -15,7 +15,7 @@ void repeat_twice(mstl::function<void(int)> const &func) {
   func(2);
 }
 
-int main(int argc, const char **argv) {
+int main() {
   int x = 4;
   int y = 2;
   repeat_twice([=](int i) { printf("#%d Numbers are: %d, %d\n", i, x, y); });
