@@ -23,13 +23,18 @@ private:
   T *m_p;
   [[no_unique_address]] TDeleter m_del;
 
+  template <typename U, typename UDeleter> friend class unique_ptr;
+
 public:
+  using element_type = T;
+  using pointer = T *;
+  using deleter_type = TDeleter;
+
   unique_ptr(std::nullptr_t = nullptr) noexcept : m_p(nullptr) {}
   explicit unique_ptr(T *p) noexcept : m_p(p) {}
 
   template <typename U, typename UDeleter,
-            typename = std::enable_if_t<std::is_convertible_v<U *, T *> &&
-                                        std::is_same_v<U, T>>>
+            typename = std::enable_if_t<std::is_convertible_v<U *, T *>>>
   unique_ptr(unique_ptr<U, UDeleter> &&that) noexcept : m_p(that.m_p) {
     that.m_p = nullptr;
   }

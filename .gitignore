@@ -1,0 +1,18 @@
+# Compiled executables
+*_test
+
+# Object files
+*.o
+*.obj
+
+# Debug files
+*.dSYM/
+*.pdb
+
+# Compiled binaries
+*.exe
+*.out
+*.app
+
+# Core dumps
+core.*
