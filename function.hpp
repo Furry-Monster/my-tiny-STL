@@ -8,6 +8,7 @@
 #include <typeinfo>
 #include <utility>
 
+namespace mstl {
 template <typename Func> class function {
   static_assert(false, "not a valid function.");
 };
@@ -91,5 +92,6 @@ public:
                : nullptr;
   }
 };
+} // namespace mstl
 
 #endif // !__FUNCTION__

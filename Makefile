@@ -1,7 +1,7 @@
 # Makefile for Monster STL Library Tests
 
 CXX = g++
-CXXFLAGS = -std=c++21 -Wall -Wextra -O2 -g
+CXXFLAGS = -std=c++20 -Wall -Wextra -O2 -g
 INCLUDES = -I.
 
 # Source files

@@ -10,7 +10,7 @@ struct func_printnum_t {
   int y;
 };
 
-void repeat_twice(function<void(int)> const &func) {
+void repeat_twice(mstl::function<void(int)> const &func) {
   func(1);
   func(2);
 }
@@ -23,10 +23,10 @@ int main(int argc, const char **argv) {
   repeat_twice(func_printnum);
   repeat_twice(func_hello);
 
-  function<void(int)> &&f{[](int i) { printf("i=%d\n", i); }};
+  mstl::function<void(int)> &&f{[](int i) { printf("i=%d\n", i); }};
 
   f(2);
-  function<void(int)> ff{f};
+  mstl::function<void(int)> ff{f};
   f = nullptr;
   ff(3);
 
