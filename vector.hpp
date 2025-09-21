@@ -5,6 +5,7 @@
 #include <cstddef>
 #include <initializer_list>
 #include <iterator>
+#include <limits>
 #include <memory>
 
 namespace mstl {
@@ -84,6 +85,111 @@ public:
       ++first;
     }
   }
+
+public:
+  void clear() noexcept {
+    for (size_t i = 0; i < m_size; i++) {
+#if __cpp_lib_constexpr_dynamic_alloc >= 201907L
+      std::destroy_at(&m_data[i]);
+#else
+      m_data[i].~T();
+#endif
+    }
+    m_size = 0;
+  }
+
+  void resize(size_t n) {
+    if (n < m_size) {
+      for (size_t i = n; i < m_size; i++) {
+#if __cpp_lib_constexpr_dynamic_alloc >= 201907L
+        std::destroy_at(&m_data[i]);
+#else
+        m_data[i].~T();
+#endif
+      }
+    } else if (n > m_size) {
+      reserve(n);
+      for (size_t i = m_size; i < n; i++) {
+#if __cpp_lib_constexpr_dynamic_alloc >= 201907L
+        std::construct_at(&m_data[i]);
+#else
+        new (&m_data[i]) T();
+#endif
+      }
+    }
+    m_size = n;
+  }
+
+  void resize(size_t n, const T &default_val) {
+    if (n < m_size) {
+      for (size_t i = n; i < m_size; i++) {
+#if __cpp_lib_constexpr_dynamic_alloc >= 201907L
+        std::destroy_at(&m_data[i]);
+#else
+        m_data[i].~T();
+#endif
+      }
+    } else if (n > m_size) {
+      reserve(n);
+      for (size_t i = m_size; i < n; i++) {
+#if __cpp_lib_constexpr_dynamic_alloc >= 201907L
+        std::construct_at(&m_data[i], default_val);
+#else
+        new (&m_data[i]) T();
+        m_data[i] = default_val;
+#endif
+      }
+    }
+    m_size = n;
+  }
+
+  void shrink() noexcept {}
+
+  void reserve(size_t n) {
+    if (n <= m_cap)
+      return;
+
+    n = std::max(n, m_cap * 2);
+
+    auto old_data = m_data;
+    auto old_cap = m_cap;
+
+    if (n == 0) {
+      m_data = nullptr;
+      m_cap = 0;
+    } else {
+      m_data = m_alloc.allocate(n);
+      m_cap = n;
+    }
+
+    if (old_cap != 0) {
+      for (size_t i = 0; i < m_size; i++) {
+#if __cpp_lib_constexpr_dynamic_alloc >= 201907L
+        std::construct_at(&m_data[i], std::move_if_noexcept(old_data[i]));
+#else
+        new (&m_data[i]) T(std::move_if_noexcept(old_data[i]));
+#endif
+      }
+      for (size_t i = 0; i < m_size; i++) {
+#if __cpp_lib_constexpr_dynamic_alloc >= 201907L
+        std::destroy_at(&old_data[i]);
+#else
+        old_data[i].~T();
+#endif
+      }
+      m_alloc.deallocate(old_data, old_cap);
+    }
+  }
+
+  std::size_t capacity() const noexcept { return m_cap; }
+  std::size_t size() const noexcept { return m_size; }
+  inline bool empty() const noexcept { return m_size == 0; }
+  static constexpr std::size_t max_size() noexcept {
+    return std::numeric_limits<std::size_t>::max() / sizeof(T);
+  }
+
+public:
+  
 
   T *data() noexcept { return m_data; }
   const T *data() const noexcept { return m_data; }
