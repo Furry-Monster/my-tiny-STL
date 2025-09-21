@@ -1,0 +1,48 @@
+#include "array.hpp"
+#include <cstddef>
+#include <cstdio>
+#include <iostream>
+
+// concept Functor:
+// Class::operator()
+// void (*fp)()
+
+// concept RandomAccessorIterator:
+// *p
+// p->...
+// ++p
+// --p
+// p += n
+// p -= n
+// p + n
+// p - n
+// p[n]
+// p1 - p2
+// p1 != p2
+// p1 < p2
+
+template <class T, size_t N> void iota(mstl::array<T, N> &a) noexcept {
+  T count = 0;
+  // for (auto it = a.begin(), eit = a.end(); it != eit; ++it)
+  for (auto &ai : a) {
+    ai = count++; // a[i] = i;
+  }
+}
+
+int main() {
+  auto a = mstl::array{2, 1, 0};
+  for (auto &ai : a) {
+    std::cout << ai << '\n';
+  }
+  iota(a);
+  for (auto &ai : a) {
+    std::cout << ai << '\n';
+  }
+  std::cout << "front:" << a.front() << '\n';
+  std::cout << "back:" << a.back() << '\n';
+  for (auto it = a.rbegin(); it != a.rend(); ++it) {
+    std::cout << *it << " ";
+  }
+  std::cout << '\n';
+  return 0;
+}

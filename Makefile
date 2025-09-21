@@ -36,6 +36,9 @@ function_test: function_test.cpp function.hpp
 raii_test: raii_test.cpp raii.hpp
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -o $@ $<
 
+array_test: array_test.cpp array.hpp
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -o $@ $<
+
 # Debug builds
 debug: CXXFLAGS += -DDEBUG -O0
 debug: $(TEST_TARGETS)
@@ -52,5 +55,6 @@ help:
 	@echo "Individual test targets:"
 	@echo "  function_test - Build function library test"
 	@echo "  raii_test     - Build RAII library test"
+	@echo "  array_test    - Build array library test"
 
 .PHONY: all clean test debug help

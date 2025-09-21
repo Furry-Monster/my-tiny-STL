@@ -1,9 +1,6 @@
 #ifndef __COMMON__
 #define __COMMON__
 
-#include <algorithm>
-#include <type_traits>
-#include <utility>
 #include <version>
 
 // C++20 concepts
