@@ -7,6 +7,8 @@
 #include <iterator>
 #include <limits>
 #include <memory>
+#include <type_traits>
+#include <utility>
 
 namespace mstl {
 
@@ -31,6 +33,7 @@ private:
   std::size_t m_cap;
   [[no_unique_address]] Alloc m_alloc;
 
+  // 构造函数
 public:
   vector() noexcept {
     m_data = nullptr;
@@ -62,8 +65,7 @@ public:
 #if __cpp_lib_constexpr_dynamic_alloc >= 201907L
       std::construct_at(&m_data[i], init_val);
 #else
-      new (&m_data[i]) T();
-      m_data[i] = init_val;
+      new (&m_data[i]) T(init_val);
 #endif
     }
   }
@@ -79,13 +81,127 @@ public:
 #if __cpp_lib_constexpr_dynamic_alloc >= 201907L
       std::construct_at(&m_data[i], *first);
 #else
-      new (&m_data[i]) T();
-      m_data[i] = *first;
+      new (&m_data[i]) T(*first);
 #endif
       ++first;
     }
   }
 
+  ~vector() noexcept {
+    for (size_t i = 0; i < m_size; i++) {
+#if __cpp_lib_constexpr_dynamic_alloc >= 201907L
+      std::destroy_at(&m_data[i]);
+#else
+      m_data[i].~T();
+#endif
+    }
+    if (m_cap != 0) {
+      m_alloc.deallocate(m_data, m_cap);
+    }
+  }
+
+  // 深浅拷贝
+public:
+  vector(vector &&that) noexcept : m_alloc(std::move(that.m_alloc)) {
+    m_data = that.m_data;
+    m_size = that.m_size;
+    m_cap = that.m_cap;
+    that.m_data = nullptr;
+    that.m_size = 0;
+    that.m_cap = 0;
+  }
+
+  vector(vector &&that, const Alloc &allocate) noexcept : m_alloc(allocate) {
+    m_data = that.m_data;
+    m_size = that.m_size;
+    m_cap = that.m_cap;
+    that.m_data = nullptr;
+    that.m_size = 0;
+    that.m_cap = 0;
+  }
+
+  vector &operator=(vector &&that) noexcept {
+    if (&that == this) [[unlikely]]
+      return *this;
+
+    for (size_t i = 0; i < m_size; i++) {
+#if __cpp_lib_constexpr_dynamic_alloc >= 201907L
+      std::destroy_at(&m_data[i]);
+#else
+      m_data[i].~T();
+#endif
+    }
+
+    if (m_cap != 0) {
+      m_alloc.deallocate(m_data, m_cap);
+    }
+
+    m_data = that.m_data;
+    m_size = that.m_size;
+    m_cap = that.m_cap;
+    that.m_data = nullptr;
+    that.m_size = 0;
+    that.m_cap = 0;
+
+    return *this;
+  }
+
+  void swap(vector &that) noexcept {
+    std::swap(m_data, that.m_data);
+    std::swap(m_size, that.m_size);
+    std::swap(m_cap, that.m_cap);
+    std::swap(m_alloc, that.m_alloc);
+  }
+
+  vector(const vector &that) : m_alloc(that.m_alloc) {
+    m_cap = m_size = that.m_size;
+    if (m_size != 0) {
+      m_data = m_alloc.allocate(m_cap);
+      for (size_t i = 0; i < m_size; i++) {
+#if __cpp_lib_constexpr_dynamic_alloc >= 201907L
+        std::construct_at(&m_data[i], std::as_const(that.m_data[i]));
+#else
+        new (&m_data[i]) T(std::as_const(that.m_data[i]));
+#endif
+      }
+    } else {
+      m_data = nullptr;
+    }
+  }
+
+  vector(const vector &that, const Alloc &allocate) : m_alloc(allocate) {
+    m_cap = m_size = that.m_size;
+    if (m_size != 0) {
+      m_data = m_alloc.allocate(m_cap);
+      for (size_t i = 0; i < m_size; i++) {
+#if __cpp_lib_constexpr_dynamic_alloc >= 201907L
+        std::construct_at(&m_data[i], std::as_const(that.m_data[i]));
+#else
+        new (&m_data[i]) T(std::as_const(that.m_data[i]));
+#endif
+      }
+    } else {
+      m_data = nullptr;
+    }
+  }
+
+  vector &operator=(const vector &that) {
+    if (&that == this) [[unlikely]]
+      return *this;
+
+    reserve(that.m_size);
+    m_size = that.m_size;
+    for (size_t i = 0; i < m_size; i++) {
+#if __cpp_lib_constexpr_dynamic_alloc >= 201907L
+      std::construct_at(&m_data[i], std::as_const(that.m_data[i]));
+#else
+      new (&m_data[i]) T(std::as_const(that.m_data[i]));
+#endif
+    }
+    return *this;
+  }
+
+  // 内存管理
 public:
   void clear() noexcept {
     for (size_t i = 0; i < m_size; i++) {
@@ -135,8 +251,7 @@ public:
 #if __cpp_lib_constexpr_dynamic_alloc >= 201907L
         std::construct_at(&m_data[i], default_val);
 #else
-        new (&m_data[i]) T();
-        m_data[i] = default_val;
+        new (&m_data[i]) T(default_val);
 #endif
       }
     }
@@ -187,9 +302,29 @@ public:
   static constexpr std::size_t max_size() noexcept {
     return std::numeric_limits<std::size_t>::max() / sizeof(T);
   }
+  Alloc get_allocator() const noexcept { return m_alloc; }
 
+  // 访问
 public:
-  
+  T &operator[](size_t i) noexcept { return m_data[i]; }
+  const T &operator[](size_t i) const noexcept { return m_data[i]; }
+
+  T &at(size_t i) {
+    if (i >= m_size) [[unlikely]]
+      _LIBPENGCXX_THROW_OUT_OF_RANGE(i, m_size);
+    return m_data[i];
+  }
+  const T &at(size_t i) const {
+    if (i >= m_size) [[unlikely]]
+      _LIBPENGCXX_THROW_OUT_OF_RANGE(i, m_size);
+    return m_data[i];
+  }
+
+  T &front() noexcept { return *m_data; }
+  const T &front() const noexcept { return *m_data; }
+
+  T &back() noexcept { return m_data[m_size - 1]; }
+  const T &back() const noexcept { return m_data[m_size - 1]; }
 
   T *data() noexcept { return m_data; }
   const T *data() const noexcept { return m_data; }
@@ -226,6 +361,225 @@ public:
     return std::make_reverse_iterator(m_data);
   }
 
+  // 数据操作
+public:
+  void push_back(const T &lval) {
+    if (m_size + 1 > m_cap) [[unlikely]]
+      reserve(m_size + 1);
+#if __cpp_lib_constexpr_dynamic_alloc >= 201907L
+    std::construct_at(&m_data[m_size], lval);
+#else
+    new (&m_data[m_size]) T(lval);
+#endif
+    ++m_size;
+  }
+
+  void push_back(T &&rval) {
+    if (m_size + 1 > m_cap) [[unlikely]]
+      reserve(m_size + 1);
+#if __cpp_lib_constexpr_dynamic_alloc >= 201907L
+    std::construct_at(&m_data[m_size], std::move(rval));
+#else
+    new (&m_data[m_size]) T(std::move(rval));
+#endif
+    ++m_size;
+  }
+
+  template <typename... Args> T &emplace_back(Args &&...args) {
+    if (m_size + 1 >= m_cap) [[unlikely]]
+      reserve(m_size + 1);
+    T *addr = &m_data[m_size];
+#if __cpp_lib_constexpr_dynamic_alloc >= 201907L
+    std::construct_at(addr, std::forward<Args>(args)...);
+#else
+    new (addr) T(std::forward<Args>(args)...);
+#endif
+    ++m_size;
+    return *addr;
+  }
+
+  template <typename... Args> T *emplace(const T *it, Args &&...args) {
+    size_t j = it - m_data;
+    reserve(m_size + 1);
+    for (size_t i = m_size; i > j; i--) {
+#if __cpp_lib_constexpr_dynamic_alloc >= 201907L
+      std::construct_at(&m_data[i], std::move(m_data[i - 1]));
+      std::destroy_at(&m_data[i - 1]);
+#else
+      new (&m_data[i]) T(std::move(m_data[i - 1]));
+      m_data[i - 1].~T();
+#endif
+    }
+    ++m_size;
+#if __cpp_lib_constexpr_dynamic_alloc >= 201907L
+    std::construct_at(&m_data[j], std::forward<Args>(args)...);
+#else
+    new (&m_data[j]) T(std::forward<Args>(args)...);
+#endif
+    return m_data + j;
+  }
+
+  T *insert(const T *it, T &&val) {
+    size_t j = it - m_data;
+    reserve(m_size + 1);
+    for (size_t i = m_size; i > j; i--) {
+#if __cpp_lib_constexpr_dynamic_alloc >= 201907L
+      std::construct_at(&m_data[i], std::move(m_data[i - 1]));
+      std::destroy_at(&m_data[i - 1]);
+#else
+      new (&m_data[i]) T(std::move(m_data[i - 1]));
+      m_data[i - 1].~T();
+#endif
+    }
+    ++m_size;
+#if __cpp_lib_constexpr_dynamic_alloc >= 201907L
+    std::construct_at(&m_data[j], std::move(val));
+#else
+    new (&m_data[j]) T(std::move(val));
+#endif
+    return m_data + j;
+  }
+
+  T *insert(const T *it, size_t n, const T &val) {
+    size_t j = it - m_data;
+    if (n == 0) [[unlikely]]
+      return const_cast<T *>(it);
+    reserve(m_size + n);
+    for (size_t i = m_size; i > j; i--) {
+#if __cpp_lib_constexpr_dynamic_alloc >= 201907L
+      std::construct_at(&m_data[i + n - 1], std::move(m_data[i - 1]));
+      std::destroy_at(&m_data[i - 1]);
+#else
+      new (&m_data[i + n - 1]) T(std::move(m_data[i - 1]));
+      m_data[i - 1].~T();
+#endif
+    }
+    m_size += n;
+    for (size_t i = j; i < j + n; i++) {
+#if __cpp_lib_constexpr_dynamic_alloc >= 201907L
+      std::construct_at(&m_data[j], val);
+#else
+      new (&m_data[j]) T(val);
+#endif
+    }
+    return m_size + j;
+  }
+
+  template <_LIBPENGCXX_REQUIRES_ITERATOR_CATEGORY(std::random_access_iterator,
+                                                   It)>
+  T *insert(const T *it, It first, It last) {
+    size_t j = it - m_data;
+    size_t n = last - first;
+    if (n == 0) [[unlikely]]
+      return const_cast<T *>(it);
+    reserve(m_size + n);
+    for (size_t i = m_size; i > j; i--) {
+#if __cpp_lib_constexpr_dynamic_alloc >= 201907L
+      std::construct_at(&m_data[i + n - 1], std::move(m_data[i - 1]));
+      std::destroy_at(&m_data[i - 1]);
+#else
+      new (&m_data[i + n - 1]) T(std::move(m_data[i - 1]));
+      m_data[i - 1].~T();
+#endif
+    }
+    m_size += n;
+    for (size_t i = j; i < j + n; i++) {
+#if __cpp_lib_constexpr_dynamic_alloc >= 201907L
+      std::construct_at(&m_data[j], *first);
+#else
+      new (&m_data[j]) T(*first);
+#endif
+      ++first;
+    }
+    return m_size + j;
+  }
+
+  T *insert(const T *it, std::initializer_list<T> ilist) {
+    return insert(it, ilist.begin(), ilist.end());
+  }
+
+  void pop_back() noexcept {
+    --m_size;
+#if __cpp_lib_constexpr_dynamic_alloc >= 201907L
+    std::destroy_at(&m_data[m_size]);
+#else
+    m_data[m_size].~T();
+#endif
+  }
+
+  T *erase(const T *it) noexcept(std::is_nothrow_move_assignable_v<T>) {
+    size_t i = it - m_data;
+    for (size_t j = i + 1; j < m_size; j++) {
+      m_data[j - 1] = std::move(m_data[j]);
+    }
+    --m_size;
+#if __cpp_lib_constexpr_dynamic_alloc >= 201907L
+    std::destroy_at(&m_data[m_size]);
+#else
+    m_data[m_size].~T();
+#endif
+    return const_cast<T *>(it);
+  }
+
+  T *erase(T *first, T *last) noexcept(std::is_nothrow_move_assignable_v<T>) {
+    size_t diff = last - first;
+    for (size_t j = last - m_data; j < m_size; j++) {
+      m_data[j - diff] = std::move(m_data[j]);
+    }
+    m_size -= diff;
+    for (size_t j = m_size; j < m_size + diff; j++) {
+#if __cpp_lib_constexpr_dynamic_alloc >= 201907L
+      std::destroy_at(&m_data[j]);
+#else
+      m_data[j].~T();
+#endif
+    }
+    return const_cast<T *>(first);
+  }
+
+  // 内存分配
+public:
+  void assign(size_t n, const T &default_val) {
+    clear();
+    reserve(n);
+    m_size = n;
+    for (size_t i = 0; i < n; i++) {
+#if __cpp_lib_constexpr_dynamic_alloc >= 201907L
+      std::construct_at(&m_data[i], default_val);
+#else
+      new (&m_data[i]) T(default_val);
+#endif
+    }
+  }
+
+  template <_LIBPENGCXX_REQUIRES_ITERATOR_CATEGORY(std::random_access_iterator,
+                                                   It)>
+  void assign(It first, It last) {
+    clear();
+    size_t n = last - first;
+    reserve(n);
+    m_size = n;
+    for (size_t i = 0; i < n; i++) {
+#if __cpp_lib_constexpr_dynamic_alloc >= 201907L
+      std::construct_at(&m_data[i], *first);
+#else
+      new (&m_data[i]) T(*first);
+#endif
+      ++first;
+    }
+  }
+
+  void assign(std::initializer_list<T> ilist) {
+    assign(ilist.begin(), ilist.end());
+  }
+
+  vector &operator=(std::initializer_list<T> ilist) {
+    assign(ilist.begin(), ilist.end());
+    return *this;
+  }
+
+  // 比较函数
+public:
   _LIBPENGCXX_DEFINE_COMPARISON(vector);
 };
 
