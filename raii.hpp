@@ -19,6 +19,11 @@ public:
 };
 
 template <typename T, typename TDeleter = deleter<T>> class unique_ptr {
+public:
+  using element_type = T;
+  using pointer = T *;
+  using deleter_type = TDeleter;
+
 private:
   T *m_p;
   [[no_unique_address]] TDeleter m_del;
@@ -26,10 +31,6 @@ private:
   template <typename U, typename UDeleter> friend class unique_ptr;
 
 public:
-  using element_type = T;
-  using pointer = T *;
-  using deleter_type = TDeleter;
-
   unique_ptr(std::nullptr_t = nullptr) noexcept : m_p(nullptr) {}
   explicit unique_ptr(T *p) noexcept : m_p(p) {}
 

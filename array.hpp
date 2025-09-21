@@ -10,8 +10,6 @@
 namespace mstl {
 
 template <typename T, std::size_t N> struct array {
-  T m_arr[N];
-
   using value_type = T;
   using size_type = std::size_t;
   using diff_type = std::ptrdiff_t;
@@ -23,6 +21,8 @@ template <typename T, std::size_t N> struct array {
   using const_iterator = const T *;
   using rev_iterator = std::reverse_iterator<T *>;
   using const_rev_iterator = std::reverse_iterator<const T *>;
+
+  T m_arr[N];
 
   reference operator[](size_t i) noexcept { return m_arr[i]; }
   const_reference operator[](size_t i) const noexcept { return m_arr[i]; }
@@ -89,8 +89,6 @@ template <typename T, std::size_t N> struct array {
 };
 
 template <typename T> struct array<T, 0> {
-  T m_arr[0];
-
   using value_type = T;
   using size_type = std::size_t;
   using diff_type = std::ptrdiff_t;
@@ -102,6 +100,8 @@ template <typename T> struct array<T, 0> {
   using const_iterator = const T *;
   using rev_iterator = std::reverse_iterator<T *>;
   using const_rev_iterator = std::reverse_iterator<const T *>;
+
+  T m_arr[0];
 
   T &operator[](size_t __i) noexcept { _LIBPENGCXX_UNREACHABLE(); }
 
