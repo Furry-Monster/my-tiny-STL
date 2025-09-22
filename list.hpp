@@ -215,6 +215,122 @@ public:
     return node->value();
   }
 
+  iterator erase(const_iterator pos) noexcept {
+    ListNode *node = const_cast<ListNode *>(pos.m_cur);
+    auto next = node->m_next;
+    auto prev = node->m_prev;
+    prev->m_next = next;
+    next->m_prev = prev;
+    destroy_at(&node->value());
+    deallocate(node);
+    --m_size;
+    return iterator{next};
+  }
+
+  iterator erase(const_iterator first, const_iterator last) noexcept {
+    while (first != last) {
+      first = erase(first);
+    }
+
+    return iterator(first);
+  }
+
+  void pop_front() noexcept { erase(begin()); }
+  void pop_back() noexcept { erase(std::prev(end())); }
+
+  size_t remove(const T &val) noexcept {
+    auto first = begin();
+    auto last = end();
+    size_t cnt = 0;
+
+    while (first != last) {
+      if (*first == val) {
+        first = erase(first);
+        ++cnt;
+      } else {
+        ++first;
+      }
+    }
+    return cnt;
+  }
+
+  template <typename Pred> size_t remove_if(Pred &&pred) noexcept {
+    auto first = begin();
+    auto last = end();
+    size_t cnt = 0;
+
+    while (first != last) {
+      if (pred(*first)) {
+        first = erase(first);
+        ++cnt;
+      } else {
+        ++first;
+      }
+    }
+    return cnt;
+  }
+
+  template <typename... Args>
+  iterator emplace(const_iterator pos, Args &&...args) {
+    ListNode *node = allocate();
+    ListNode *next = const_cast<ListNode *>(pos.m_cur);
+    ListNode *prev = next->m_prev;
+    node->m_next = next;
+    node->m_prev = prev;
+    prev->m_next = node;
+    next->m_prev = node;
+    construct_at(&node->value(), std::forward<Args>(args)...);
+    ++m_size;
+    return iterator{node};
+  }
+
+  iterator insert(const_iterator pos, const T &val) {
+    return emplace(pos, val);
+  }
+
+  iterator insert(const_iterator pos, T &&val) {
+    return emplace(pos, std::move(val));
+  }
+
+  iterator insert(const_iterator pos, size_t n, const T &val) {
+    auto orig = pos;
+    bool had_orig = false;
+    while (n--) {
+      pos = emplace(pos, val);
+      if (!had_orig) {
+        had_orig = true;
+        orig = pos;
+      }
+      ++pos;
+    }
+    return iterator{orig};
+  }
+
+  template <std::input_iterator InputIt>
+  iterator insert(const_iterator pos, InputIt first, InputIt last) {
+    auto orig = pos;
+    bool had_orig = false;
+    while (first != last) {
+      pos = emplace(pos, *first);
+      if (!had_orig) {
+        had_orig = true;
+        orig = pos;
+      }
+      ++pos;
+      ++first;
+    }
+    return iterator{orig};
+  }
+
+  iterator insert(const_pointer pos, std::initializer_list<T> ilist) {
+    return insert(pos, ilist.begin(), ilist.end());
+  }
+
+  void splice(const_iterator pos, list &&that) {
+    insert(pos, std::make_move_iterator(that.begin()),
+           std::make_move_iterator(that.end()));
+  }
+
 public:
   T &front() noexcept { return m_dummy.m_next->value(); }
   const T &front() const noexcept { return m_dummy.m_next->value(); }
@@ -237,7 +353,21 @@ public:
   using reverse_iterator = std::reverse_iterator<iterator>;
   using reverse_const_iterator = std::reverse_iterator<const_iterator>;
 
-  
+  reverse_iterator rbegin() noexcept {
+    return std::make_reverse_iterator(end());
+  }
+  reverse_const_iterator crbegin() const noexcept {
+    return std::make_reverse_iterator(cend());
+  }
+  reverse_const_iterator rbegin() const noexcept { return crbegin(); }
+
+  reverse_iterator rend() noexcept {
+    return std::make_reverse_iterator(begin());
+  }
+  reverse_const_iterator crend() const noexcept {
+    return std::make_reverse_iterator(cbegin());
+  }
+  reverse_const_iterator rend() const noexcept { return crend(); }
 
 public:
   struct iterator {
