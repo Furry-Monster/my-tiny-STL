@@ -45,6 +45,12 @@ vector_test: vector_test.cpp vector.hpp
 list_test: list_test.cpp list.hpp
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -o $@ $<
 
+map_test: map_test.cpp map.hpp
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -o $@ $<
+
+set_test: set_test.cpp set.hpp
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -o $@ $<
+
 # Debug builds
 debug: CXXFLAGS += -DDEBUG -O0
 debug: $(TEST_TARGETS)
@@ -64,5 +70,7 @@ help:
 	@echo "  array_test    - Build array library test"
 	@echo "  vector_test   - Build vector library test"
 	@echo "  list_test     - Build list library test"
+	@echo "  map_test      - Build map library test"
+	@echo "  set_test      - Build set library test"
 
 .PHONY: all clean test debug help
