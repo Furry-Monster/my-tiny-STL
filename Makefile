@@ -42,6 +42,9 @@ array_test: array_test.cpp array.hpp
 vector_test: vector_test.cpp vector.hpp
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -o $@ $<
 
+list_test: list_test.cpp list.hpp
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -o $@ $<
+
 # Debug builds
 debug: CXXFLAGS += -DDEBUG -O0
 debug: $(TEST_TARGETS)
@@ -60,5 +63,6 @@ help:
 	@echo "  raii_test     - Build RAII library test"
 	@echo "  array_test    - Build array library test"
 	@echo "  vector_test   - Build vector library test"
+	@echo "  list_test     - Build list library test"
 
 .PHONY: all clean test debug help
