@@ -32,7 +32,10 @@ private:
         : func(std::forward<CArgs>(carried_args)...){};
 
     Ret call(Args... args) override {
-      std::invoke(func, std::forward<Args>(args)...);
+      if constexpr (std::is_void_v<Ret>)
+        std::invoke(func, std::forward<Args>(args)...);
+      else
+        return std::invoke(func, std::forward<Args>(args)...);
     }
 
     std::unique_ptr<function_base> clone() const override {
@@ -63,6 +66,7 @@ public:
   function &operator=(function &&that) = default;
   function &operator=(const function &that) {
     invocable = that.invocable ? that.invocable->clone() : nullptr;
+    return *this;
   }
 
   explicit operator bool() const noexcept { return invocable != nullptr; }
@@ -76,7 +80,7 @@ public:
   }
 
   Ret operator()(Args... args) const {
-    if (!invocable) [[__unlikely__]]
+    if (!invocable) [[unlikely]]
       throw std::bad_function_call();
     return invocable->call(std::forward<Args>(args)...);
   }
