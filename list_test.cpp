@@ -1,3 +1,4 @@
+#include "list.hpp"
 #include <cstddef>
 #include <cstdio>
 #include <cstring>
@@ -19,7 +20,7 @@ int main() {
     printf("arr[%zd] = %d\n", i, val);
     ++i;
   }
-  List<int> arr2 = arr;
+  mstl::list<int> arr2 = arr;
   for (auto it = arr2.crbegin(); it != arr2.crend(); ++it) {
     int const &val = *it;
     --i;
@@ -32,6 +33,6 @@ int main() {
   arr2.erase(arr2.begin());
   std::cout << std::boolalpha << "arr2.size() = " << arr2.size()
             << ", arr2.empty() = " << arr2.empty() << '\n';
-  List<int> arr3(3);
+  mstl::list<int> arr3(3);
   std::cout << arr3.size() << '\n';
 }

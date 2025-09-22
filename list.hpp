@@ -2,7 +2,6 @@
 #define __LIST__
 
 #include "_common.hpp"
-#include <concepts>
 #include <cstddef>
 #include <initializer_list>
 #include <iterator>
@@ -105,7 +104,7 @@ public:
     uninit_assign(n, default_val);
   }
 
-  template <std::input_iterator InputIt>
+  template <_LIBPENGCXX_REQUIRES_ITERATOR_CATEGORY(std::input_iterator, InputIt)>
   list(InputIt first, InputIt last, const Alloc &allocator = Alloc())
       : m_alloc(allocator) {
     uninit_assign(first, last);
@@ -125,6 +124,7 @@ public:
     m_alloc = std::move(that.m_alloc);
     clear();
     uninit_move_assign(std::move(that));
+    return *this;
   }
 
   list(const list &that) : m_alloc(that.m_alloc) {
@@ -135,9 +135,15 @@ public:
     uninit_assign(that.cbegin(), that.cend());
   }
 
-  list &operator=(const list &that) { assign(that.cbegin(), that.cend()); }
+  list &operator=(const list &that) { 
+    assign(that.cbegin(), that.cend()); 
+    return *this;
+  }
 
-  list &operator=(std::initializer_list<T> ilist) { assign(ilist); }
+  list &operator=(std::initializer_list<T> ilist) { 
+    assign(ilist); 
+    return *this;
+  }
 
   ~list() noexcept { clear(); }
 
@@ -167,7 +173,7 @@ public:
     m_size = 0;
   }
 
-  template <std::input_iterator InputIt>
+  template <_LIBPENGCXX_REQUIRES_ITERATOR_CATEGORY(std::input_iterator, InputIt)>
   void assign(InputIt first, InputIt last) {
     clear();
     uninit_assign(first, last);
@@ -193,7 +199,7 @@ public:
 
   template <typename... Args> T &emplace_back(Args &&...args) {
     ListNode *node = allocate();
-    ListNode *prev = m_dummy.prev;
+    ListNode *prev = m_dummy.m_prev;
     prev->m_next = node;
     node->m_prev = prev;
     node->m_next = &m_dummy;
@@ -306,7 +312,7 @@ public:
     return iterator{orig};
   }
 
-  template <std::input_iterator InputIt>
+  template <_LIBPENGCXX_REQUIRES_ITERATOR_CATEGORY(std::input_iterator, InputIt)>
   iterator insert(const_iterator pos, InputIt first, InputIt last) {
     auto orig = pos;
     bool had_orig = false;
@@ -322,7 +328,7 @@ public:
     return iterator{orig};
   }
 
-  iterator insert(const_pointer pos, std::initializer_list<T> ilist) {
+  iterator insert(const_iterator pos, std::initializer_list<T> ilist) {
     return insert(pos, ilist.begin(), ilist.end());
   }
 
@@ -342,7 +348,7 @@ public:
   const_iterator begin() const noexcept {
     return const_iterator(m_dummy.m_next);
   }
-  const iterator cbegin() const noexcept {
+  const_iterator cbegin() const noexcept {
     return const_iterator(m_dummy.m_next);
   }
 
@@ -393,7 +399,7 @@ public:
       return *this;
     }
 
-    iterator &operator++(int) noexcept { // iterator++
+    iterator operator++(int) noexcept { // iterator++
       auto tmp = *this;
       ++*this;
       return tmp;
@@ -404,7 +410,7 @@ public:
       return *this;
     }
 
-    iterator &operator--(int) noexcept { // iterator--
+    iterator operator--(int) noexcept { // iterator--
       auto tmp = *this;
       --*this;
       return tmp;
@@ -430,11 +436,11 @@ public:
     using reference = T const &;
 
   private:
-    ListNode *m_cur;
+    const ListNode *m_cur;
 
     friend list;
 
-    explicit const_iterator(ListNode *cur) noexcept : m_cur(cur) {}
+    explicit const_iterator(const ListNode *cur) noexcept : m_cur(cur) {}
 
   public:
     const_iterator() = default;
@@ -450,7 +456,7 @@ public:
       return *this;
     }
 
-    const_iterator &operator++(int) noexcept {
+    const_iterator operator++(int) noexcept {
       auto tmp = *this;
       ++*this;
       return tmp;
@@ -461,7 +467,7 @@ public:
       return *this;
     }
 
-    const_iterator &operator--(int) noexcept {
+    const_iterator operator--(int) noexcept {
       auto tmp = *this;
       --*this;
       return tmp;
@@ -490,7 +496,7 @@ private:
     that.m_size = 0;
   }
 
-  template <std::input_iterator InputIt>
+  template <_LIBPENGCXX_REQUIRES_ITERATOR_CATEGORY(std::input_iterator, InputIt)>
   void uninit_assign(InputIt first, InputIt last) {
     m_size = 0;
     ListNode *prev = &m_dummy;
@@ -508,7 +514,6 @@ private:
   }
 
   template <typename... Args>
-    requires std::constructible_from<T, Args...>
   void uninit_assign(size_t n, Args &&...args) {
     ListNode *prev = &m_dummy;
     for (size_t i = 0; i < n; i++) {
