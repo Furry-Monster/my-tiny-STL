@@ -1,6 +1,13 @@
 #ifndef __RBTREE__
 #define __RBTREE__
 
+/*
+
+ -- 红黑树实现 --
+ --- from parallel101 ---
+
+*/
+
 #include "_common.hpp"
 #include <cassert>
 #include <iterator>
