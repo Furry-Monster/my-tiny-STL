@@ -28,7 +28,6 @@ template <class T, size_t N> void iota(mstl::array<T, N> &a) noexcept {
         ai = count++; // a[i] = i;
     }
 }
-
 int main() {
     auto a = mstl::array{2, 1, 0};
     for (auto &ai : a) {

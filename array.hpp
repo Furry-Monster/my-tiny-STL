@@ -103,15 +103,15 @@ template <typename T> struct array<T, 0> {
 
     T m_arr[0];
 
-    T &operator[](size_t __i) noexcept { _LIBPENGCXX_UNREACHABLE(); }
+    T &operator[](size_t /*i*/) noexcept { _LIBPENGCXX_UNREACHABLE(); }
 
-    T const &operator[](size_t __i) const noexcept {
+    T const &operator[](size_t /*i*/) const noexcept {
         _LIBPENGCXX_UNREACHABLE();
     }
 
-    T &at(size_t __i) { throw std::out_of_range("array::at"); }
+    T &at(size_t /*i*/) { throw std::out_of_range("array::at"); }
 
-    T const &at(size_t __i) const { throw std::out_of_range("array::at"); }
+    T const &at(size_t /*i*/) const { throw std::out_of_range("array::at"); }
 
     void fill(T const &) noexcept {}
 
