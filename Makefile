@@ -27,7 +27,7 @@ test: $(TEST_TARGETS)
 		echo "Running $$test..."; \
 		./$$test; \
 		echo ""; \
-	done
+		done
 
 # Individual test targets
 function_test: function_test.cpp function.hpp
@@ -51,6 +51,9 @@ map_test: map_test.cpp map.hpp
 set_test: set_test.cpp set.hpp
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -o $@ $<
 
+variant_test: variant_test.cpp variant.hpp
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -o $@ $<
+
 # Debug builds
 debug: CXXFLAGS += -DDEBUG -O0
 debug: $(TEST_TARGETS)
@@ -72,5 +75,6 @@ help:
 	@echo "  list_test     - Build list library test"
 	@echo "  map_test      - Build map library test"
 	@echo "  set_test      - Build set library test"
+	@echo "  variant_test  - Build variant library test"
 
 .PHONY: all clean test debug help
